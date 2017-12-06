@@ -15,13 +15,13 @@ Composition is how an FPer models the flow of data through the program. In some 
 
 ## Output to Input
 
-We've already seen a few examples of composition. For example, our discussion of [`unary(..)` in Chapter 3](ch3.md/#user-content-unary) included this expression: [`[ .. ].map(unary(parseInt))`](ch3.md/#user-content-mapunary). Think about what's happening there.
+We've already seen a few examples of composition. For example, our discussion of [`unary(..)` in Chapter 3](ch3.md/#user-content-unary) included this expression: [`[..].map(unary(parseInt))`](ch3.md/#user-content-mapunary). Think about what's happening there.
 
 To compose two functions together, pass the output of the first function call as the input of the second function call. In `map(unary(parseInt))`, the `unary(parseInt)` call returns a value (a function); that value is directly passed as an argument to `map(..)`, which returns an array.
 
 To take a step back and visualize the conceptual flow of data, consider:
 
-```
+```txt
 arrayValue <-- map <-- unary <-- parseInt
 ```
 
@@ -115,13 +115,13 @@ function uniqueWords(str) {
 }
 ```
 
-`uniqueWords(..)` takes a string and returns an array. It's a composition of `unique(..)` and `words(..)`, as it fulfills the data flow:
+`uniqueWords(..)` takes a string and returns an array. It's a composition of the two functions: `unique(..)` and `words(..)`; it creates this flow of data:
 
-```
+```txt
 wordsUsed <-- unique <-- words <-- text
 ```
 
-You certainly get it by now: the unfolding revolution in candy factory design is function composition.
+You probably recognize it by now: the unfolding revolution in candy factory design is function composition.
 
 ### Machine Making
 
@@ -187,7 +187,7 @@ The candy factory better be careful if they try to feed the wrapped candies into
 
 If we can define the composition of two functions, we can just keep going to support composing any number of functions. The general data visualization flow for any number of functions being composed looks like this:
 
-```
+```txt
 finalValue <-- func1 <-- func2 <-- ... <-- funcN <-- origValue
 ```
 
@@ -233,7 +233,7 @@ var compose =
         };
 ```
 
-**Warning:** `...fns` is a collected array of arguments, not a passed-in array, and as such, it's local to `compose(..)`. It may be tempting to think the `fns.slice()` would thus be unnecessary. However, in this particular implementation, `.pop()` inside the inner `composed(..)` function is mutating the list, so if we didn't make a copy each time, the returned composed function could only be used reliably once. We'll revisit this hazard in [Chapter 6](ch6.md).
+**Warning:** `...fns` is a collected array of arguments, not a passed-in array, and as such, it's local to `compose(..)`. It may be tempting to think the `fns.slice()` would thus be unnecessary. However, in this particular implementation, `.pop()` inside the inner `composed(..)` function is mutating the list, so if we didn't make a copy each time, the returned composed function could only be used reliably once. We'll revisit this hazard in [Chapter 6](ch6.md/#user-content-hiddenmutation).
 
 Now let's look at an example of composing more than two functions. Recalling our `uniqueWords(..)` composition example, let's add a `skipShortWords(..)` to the mix:
 
@@ -251,7 +251,7 @@ function skipShortWords(words) {
 }
 ```
 
-Let's define `biggerWords(..)` that includes `skipShortWords(..)`. The manual composition equivalent we're looking for is `skipShortWords(unique(words(text)))`, so let's do it with `compose(..)`:
+Let's define `biggerWords(..)` that includes `skipShortWords(..)`. The manual composition equivalent is `skipShortWords( unique( words( text ) ) )`, so let's do that with `compose(..)`:
 
 ```js
 var text = "To compose two functions together, pass the \
@@ -301,11 +301,11 @@ While you may very well never implement your own `compose(..)` to use in product
 
 So let's examine some different implementation options for `compose(..)`. We'll also see there are some pros/cons to each implementation, especially performance.
 
-We'll be looking at the `reduce(..)` utility in detail in Chapter 9, but for now, just know that it reduces a list (array) to a single finite value. It's like a fancy loop.
+We'll be looking at the [`reduce(..)` utility in detail in Chapter 9](ch9.md/#reduce), but for now, just know that it reduces a list (array) to a single finite value. It's like a fancy loop.
 
-For example, if you did an addition-reduction across the list of numbers `[1,2,3,4,5,6]`, you'd be looping over them adding them together as you go. The reduction would add `1` to `2`, and add that result to `3`, and then add that result to `4`, and so on, resulting in the final summation: `21`.
+For example, if you did an addition-reduction across a list of numbers (such as `[1,2,3,4,5,6]`), you'd loop over them adding them together as you go. The reduction would add `1` to `2`, and add that result to `3`, and then add that result to `4`, and so on, resulting in the final summation: `21`.
 
-The original version of `compose(..)` uses a loop and eagerly (aka, immediately) calculates the result of one call to pass into the next call. We can do that same thing with `reduce(..)`:
+The original version of `compose(..)` uses a loop and eagerly (aka, immediately) calculates the result of one call to pass into the next call. This is a reduction of a list of functions, so we can do that same thing with `reduce(..)`:
 
 <a name="composereduce"></a>
 
@@ -327,6 +327,8 @@ var compose = (...fns) =>
             , result
         );
 ```
+
+**Note:** This implementation of `compose(..)` uses `fns.reverse().reduce(..)` to reduce from right-to-left. We'll [revisit `compose(..)` in Chapter 9](ch9.md/#user-content-composereduceright), instead using `reduceRight(..)` for that purpose.
 
 Notice that the `reduce(..)` looping happens each time the final `composed(..)` function is run, and that each intermediate `result(..)` is passed along to the next iteration as the input to the next call.
 
@@ -366,7 +368,7 @@ Your mileage may vary on which implementation is better, but keep in mind that t
 
 We could also define `compose(..)` using recursion. The recursive definition for `compose(fn1,fn2, .. fnN)` would look like:
 
-```
+```txt
 compose( compose(fn1,fn2, .. fnN-1), fnN );
 ```
 
@@ -454,7 +456,7 @@ To express that with `pipe(..)`, we just reverse the order we list them in:
 var biggerWords = pipe( words, unique, skipShortWords );
 ```
 
-The advantage of `pipe(..)` is that it lists the functions in order of execution, which can sometimes reduce reader confusion. It may be simpler to see `pipe(words,unique,skipShortWords)` and read that we do `words(..)` first, then `unique(..)`, and finally `skipShortWords(..)`.
+The advantage of `pipe(..)` is that it lists the functions in order of execution, which can sometimes reduce reader confusion. It may be simpler to read the code: `pipe( words, unique, skipShortWords )`, and recognize that it's executing `words(..)` first, then `unique(..)`, and finally `skipShortWords(..)`.
 
 `pipe(..)` is also handy if you're in a situation where you want to partially apply the *first* function(s) that execute. Earlier we did that with right-partial application of `compose(..)`.
 
@@ -570,7 +572,7 @@ Note that abstraction in this sense is not really intended to *hide* details, as
 
 In this quote, "irrelevant", in terms of what is hidden, shouldn't be thought of as an absolute qualitative judgement, but rather relative to what you want to focus on at any given moment. In other words, when we separate X from Y, if I want to focus on X, Y is irrelevant at that moment. At another time, if I want to focus on Y, X is irrelevant at that moment.
 
-**We're not abstracting to hide, but to separate to improve focus**.
+**We're not abstracting to hide details; we're separating details to improve focus.**
 
 Recall that at the outset of this book I stated that FP's goal is to create code that is more readable and understandable. One effective way of doing that is untangling complected (read: tightly braided, as in strands of rope) code into separate, simpler (read: loosely bound) pieces of code. In that way, the reader isn't distracted by the details of one part while looking for the details of the other part.
 
@@ -710,7 +712,7 @@ function setProp(name,obj,val) {
 
 Now, to define an `extractName(..)` that pulls a `"name"` property off an object, we'll partially apply `prop(..)`:
 
-```
+```js
 var extractName = partial( prop, "name" );
 ```
 
@@ -726,7 +728,7 @@ getLastOrder( function orderFound(order){
 
 How can we define `outputPersonName(..)`? To visualize what we need, think about the desired flow of data:
 
-```
+```txt
 output <-- extractName <-- person
 ```
 
@@ -734,7 +736,7 @@ output <-- extractName <-- person
 
 Hopefully you recognized that as a `compose(..)` operation. So we can define `outputPersonName(..)` as:
 
-```
+```js
 var outputPersonName = compose( output, extractName );
 ```
 
@@ -783,28 +785,31 @@ var personData = partial( makeObjProp, "id" );
 
 To use `processPerson(..)` to perform the lookup of a person attached to an `order` value, the conceptual flow of data through operations we need is:
 
-```
+```txt
 processPerson <-- personData <-- extractPersonId <-- order
 ```
 
 So we'll just use `compose(..)` again to define a `lookupPerson(..)` utility:
 
 ```js
-var lookupPerson = compose( processPerson, personData, extractPersonId );
+var lookupPerson =
+    compose( processPerson, personData, extractPersonId );
 ```
 
 And... that's it! Putting the whole example back together without any "points":
 
 ```js
 var getPerson = partial( ajax, "http://some.api/person" );
-var getLastOrder = partial( ajax, "http://some.api/order", { id: -1 } );
+var getLastOrder =
+    partial( ajax, "http://some.api/order", { id: -1 } );
 
 var extractName = partial( prop, "name" );
 var outputPersonName = compose( output, extractName );
 var processPerson = partialRight( getPerson, outputPersonName );
 var personData = partial( makeObjProp, "id" );
 var extractPersonId = partial( prop, "personId" );
-var lookupPerson = compose( processPerson, personData, extractPersonId );
+var lookupPerson =
+    compose( processPerson, personData, extractPersonId );
 
 getLastOrder( lookupPerson );
 ```
